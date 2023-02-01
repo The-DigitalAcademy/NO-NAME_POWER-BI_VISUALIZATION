@@ -1,94 +1,145 @@
 /*Importing the dataset*/
-proc import OUT = loans 
-FILE ='/home/u62791206/Loans/Loan_Data.csv'
-DBMS = CSV
-REPLACE;
-run;
+%web_drop_table(work.loans);
+FILEname REFFILE  '/home/u62791206/Loans/Loan_Data.csv';
+proc import datafile=REFFILE DBMS=CSV OUT = work.loans ;
+GETNAMES= YES;
+RUN;
+PROC CONTENTS DATA=WORK.LOANS;
+RUN;
+
+%web_open_table(work.loans);
+
+
+
 
 /*Printing the dataset*/
  title 'Loans';
-proc print data = loans;
+proc print data = work.loans (obs=20);
 run;
-
+/* Checking for the statistical summary*/
+proc means;
+run;
 /* Checking the data types*/
-proc contents DATA=loans;
+proc contents DATA=work.loans;
 run;
 
-/* Cheching for nulls*/
-proc means data= loans
-nMISS n; 
-var ApplicantIncome; 
+/* Checking for nulls*/
+
+proc means data= work.loans nmiss n;
 run;
-proc means data= loans
-nMISS n; 
-var CoapplicantIncome; 
-run;
-proc means data= loans
-nMISS n; 
-var LoanAmount;
-run; 
-proc means data= loans
-nMISS n; 
-var Loan_Amount_Term; 
-run;
-proc means data= loans
-nMISS n; 
-var Credit_History; 
-run;
+
+
 proc sql; 
-select nmiss(Married) as n_missing_state from loans; 
+select nmiss(Married) as married,nmiss(Education)as education,nmiss(Self_Employed)as self_employed,nmiss(Gender)as gender,nmiss(Property_Area) as property_area,nmiss(Loan_Status)as loan_status,nmiss(Loan_ID) as loan_ID,nmiss(Dependents)as dependents from loans; 
 quit; 
 run;
-proc sql; 
-select nmiss(Education) as n_missing_state from loans; 
-quit; 
+
 run;
-proc sql; 
-select nmiss(Self_Employed) as n_missing_state from loans; 
-quit; 
-run;
-proc sql; 
-select nmiss(Gender) as n_missing_state from loans; 
-quit; 
-run;
-proc sql; 
-select nmiss(Property_Area) as n_missing_state from loans; 
-quit; 
-run;
-proc sql; 
-select nmiss(Loan_Status) as n_missing_state from loans; 
-quit; 
-run;
-proc sql; 
-select nmiss(Loan_ID) as Dn_missing_state from loans; 
-quit; 
-run;
-proc sql; 
-select nmiss(Dependents) as n_missing_state from loans; 
-quit; 
-run;
+/* Filling the nulls*/
 data WORK.loans;
 set WORK.loans;
- 
 LoanAmount= coalesce(LoanAmount,146);
 Loan_Amount_Term =coalesce(Loan_Amount_Term,342);
 Credit_History = coalesce(Credit_history,1);
 run;
-proc means;
+
+
+
+data WORK.myloans;
+set WORK.loans;
+if Gender =. then Gender = 'Male';
+ If Married =. then  Married ='Yes';
+ if Self_Employed =. then Self_Employed='No';
+if Dependents =. then Dependents=0;
+
 run;
-PROC FREQ data=loans;
-   TABLES Gender / OUT=freq;
-RUN;
 
-PROC SORT data=freq;
-   BY Gender descending;
-RUN;
+proc print data = work.myloans (obs=20);
+run;
 
-DATA mode_Gender;
-   SET freq;
-   IF _N_ = 1 THEN mode_Gender = Gender;
-RUN;
 
-proc univariate data=loans mode;
-    var Gender;
+
+/*Check if nulls were filled*/
+proc means data= work.loans nmiss n;
+
+run;
+proc sql; 
+select nmiss(Married) as married,nmiss(Education)as education,nmiss(Self_Employed)as self_employed,nmiss(Gender)as gender,nmiss(Property_Area) as property_area,nmiss(Loan_Status)as loan_status,nmiss(Loan_ID) as loan_ID,nmiss(Dependents)as dependents from loans; 
+quit; 
+run;
+
+/*Graphs*/
+title "Distribution of gender";
+proc template;
+	define statgraph SASStudio.Pie;
+		begingraph;
+		layout region;
+		piechart category=Gender /;
+		endlayout;
+		endgraph;
+	end;
+run;
+
+ods graphics / reset width=6.4in height=4.8in imagemap;
+
+proc sgrender template=SASStudio.Pie data=WORK.LOANS;
+run;
+
+ods graphics / reset width=6.4in height=4.8in imagemap;
+
+
+
+ 
+title "Distribution of loan status based on gender";
+proc sgplot data=WORK.LOANS;
+	hbar Gender / group=Loan_Status groupdisplay=cluster;
+	xaxis grid;
+	keylegend / location=inside;
+run;
+
+ods graphics / reset;
+title "Which property area has the most loan approved?";
+proc sgplot data=WORK.LOANS;
+	hbar Property_Area / group=Loan_Status groupdisplay=cluster;
+	xaxis grid;
+	keylegend / location=inside;
+run;
+
+ods graphics / reset;
+title "Credit History by Loan Status";
+DATA work.loans; 
+ ATTRIB CREDIT_HISTORY_ LENGTH=$5;
+ SET work.loans; 
+ SELECT;
+ WHEN (Credit_Histroy = 1) CREDID_HISTORY_= 'Good';
+  OTHERWISE CREDID_HISTORY_ = 'Bad'; 
+  END;
+  run;
+proc freq data=WORK.LOANS;
+    tables 'CREDIT_HISTORY_'n;
+run;
+title "Dependents by Loan Status";
+proc sgplot data=WORK.LOANS;
+	vbar Dependents / group=Loan_Status groupdisplay=cluster;
+	yaxis grid;
+run;
+title "Married by Loan Status";
+proc sgplot data=WORK.LOANS;
+	vbar Married / group=Loan_Status groupdisplay=cluster;
+	yaxis grid;
+run;
+title "Do you need to be self employed to get a loan?";
+proc sgplot data=WORK.LOANS;
+	vbar Self_Employed / group=Self_Employed groupdisplay=cluster;
+	yaxis grid;
+run;
+title "Which loan term is mostly used?";
+proc sgplot data=WORK.LOANS;
+	vbar Loan_Amount_Term / group=Loan_Amount_Term  groupdisplay=cluster;
+	yaxis grid;
+run;
+title "Which property area has the highest number of loans approved ?";
+proc sgplot data=WORK.LOANS;
+	vbar Property_Area / group=Property_Area  groupdisplay=cluster;
+	yaxis grid;
 run;
