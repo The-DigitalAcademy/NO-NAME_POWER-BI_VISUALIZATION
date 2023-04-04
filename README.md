@@ -10,8 +10,10 @@ The loan dataset consists of 614 rows and 13 columns.
 
 # Technologies Used are:
 1.SAS
+
 2.Python 
+
 3.PowerBI/Tableau.
 
 # Project Status
-Project is: in progress
+Project is: Done
