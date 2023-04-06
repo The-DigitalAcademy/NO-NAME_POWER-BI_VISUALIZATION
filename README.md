@@ -1,4 +1,6 @@
-# Project Name: Analysis on Heart Disease and Loan Datasets# Table of Contents
+# Project Name: Analysis on Heart Disease and Loan Datasets
+
+# Table of Contents
 
 * [General Info](#general-information)
 * [Technologies Used](#technologies-used)
